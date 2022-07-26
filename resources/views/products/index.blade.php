@@ -6,7 +6,6 @@
         <h1 class="h3 mb-0 text-gray-800">Products</h1>
     </div>
 
-
     <div class="card">
         <form action="" method="get" class="card-header">
             <div class="form-row justify-content-between">
@@ -15,7 +14,14 @@
                 </div>
                 <div class="col-md-2">
                     <select name="variant" id="" class="form-control">
-
+                        <option value="" selected disabled>--Select a Variant --</option>
+                        @foreach($variant_groups as $variant)
+                            <optgroup label="{{$variant['title']}}">
+                                @foreach($variant['variants'] as $variant_item)
+                                    <option value="{{$variant_item['variant_id']}}">{{ucfirst($variant_item['variant'])}}</option>
+                                @endforeach
+                            </optgroup>
+                        @endforeach
                     </select>
                 </div>
 
