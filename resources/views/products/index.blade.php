@@ -94,7 +94,7 @@
                     <p>Showing {{ $products->firstItem() }} to {{ $products->lastItem() }} out of {{$products->total()}}</p>
                 </div>
                 <div class="col-md-2">
-
+                    {{ $products->appends(request()->input())->links() }}
                 </div>
             </div>
         </div>
