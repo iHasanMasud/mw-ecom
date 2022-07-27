@@ -17,7 +17,12 @@ class ProductController extends Controller
      */
     public function index()
     {
-        return view('products.index');
+        $products = Product::select('id', 'title', 'sku', 'description', 'created_at')
+            ->with('product_variant_prices')
+            ->paginate(5);
+
+        $variant_groups = $this->getVariantGroups();
+        return view('products.index', compact('products', 'variant_groups'));
     }
 
     /**
@@ -88,4 +93,23 @@ class ProductController extends Controller
     {
         //
     }
+
+    /**
+     * Get variant groups
+     */
+
+    public function getVariantGroups(){
+        $variants = Variant::select('id', 'title')->get()->toArray();
+        $i = 0;
+        foreach($variants as $variant){
+            $variants[$i]['variants'] = ProductVariant::select('variant_id','variant')
+                                        ->where('variant_id', $variant['id'])
+                                        ->get()->unique('variant')
+                                        ->toArray();
+            $i++;
+        }
+        return $variants;
+    }
+
+
 }
