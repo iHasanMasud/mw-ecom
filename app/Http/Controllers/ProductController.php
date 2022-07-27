@@ -13,7 +13,7 @@ class ProductController extends Controller
 {
     /**
      * Display a listing of the resource.
-     *
+     * Author: https://github.com/iHasanMasud
      * @return \Illuminate\Contracts\Foundation\Application|\Illuminate\Contracts\View\Factory|\Illuminate\Http\Response|\Illuminate\View\View
      */
     public function index(Request $request)
@@ -77,7 +77,33 @@ class ProductController extends Controller
      */
     public function store(Request $request)
     {
+        $request->validate([
+            'title' => "required",
+            'sku' => "required|unique:products,sku",
+            'description' => "required",
+            'product_image' => "required|array",
+            'product_variant' => "required|array",
+            'product_variant_prices' => "required|array",
+        ]);
 
+        try {
+            DB::beginTransaction();
+            $product = Product::create([
+                'title' => $request->title,
+                'sku' => $request->sku,
+                'description' => $request->description,
+            ]);
+            $product->product_images()->createMany($request->product_image);
+            $product->variants()->createMany($request->product_variant);
+            $product->variants()->each(function ($variant) use ($request) {
+                $variant->variant_prices()->createMany($request->product_variant_prices);
+            });
+            DB::commit();
+            return response()->json(['success' => true, 'message' => 'Product created successfully.']);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json(['success' => false, 'message' => $e->getMessage()]);
+        }
     }
 
 

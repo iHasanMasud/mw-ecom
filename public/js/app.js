@@ -2012,6 +2012,14 @@ __webpack_require__.r(__webpack_exports__);
 //
 //
 //
+//
+//
+//
+//
+//
+//
+//
+//
 
 
 
@@ -2039,12 +2047,14 @@ __webpack_require__.r(__webpack_exports__);
       product_variant_prices: [],
       dropzoneOptions: {
         url: 'https://httpbin.org/post',
+        addRemoveLinks: true,
         thumbnailWidth: 150,
         maxFilesize: 0.5,
         headers: {
           "My-Awesome-Header": "header value"
         }
-      }
+      },
+      errors: null
     };
   },
   methods: {
@@ -2098,8 +2108,12 @@ __webpack_require__.r(__webpack_exports__);
       }, []);
       return ans;
     },
-    // store product into database
+
+    /**
+     * Store product into database
+     * */
     saveProduct: function saveProduct() {
+      this.errors = null;
       var product = {
         title: this.product_name,
         sku: this.product_sku,
@@ -2109,11 +2123,30 @@ __webpack_require__.r(__webpack_exports__);
         product_variant_prices: this.product_variant_prices
       };
       axios.post('/product', product).then(function (response) {
-        console.log(response.data);
+        //console.log(response.data);
+        alert('Product has been saved');
+        setTimeout(function () {
+          window.location.href = '/product';
+        }, 2000);
       })["catch"](function (error) {
         console.log(error);
+        alert(error.response.data.message);
       });
-      console.log(product);
+    },
+
+    /**
+     * Store product images
+     * */
+    uploadSuccess: function uploadSuccess(file, response) {
+      this.images.push(response.files.file);
+    },
+
+    /**
+     * Remove product image
+     * */
+    removeFile: function removeFile(file, error, xhr) {
+      var index = this.images.indexOf(file.dataURL);
+      if (index > -1) this.images.splice(index, 1);
     }
   },
   mounted: function mounted() {
@@ -50474,6 +50507,29 @@ var render = function() {
   var _c = _vm._self._c || _h
   return _c("section", [
     _c("div", { staticClass: "row" }, [
+      _vm.errors
+        ? _c("div", { staticClass: "col-md-12" }, [
+            _c(
+              "div",
+              {
+                staticClass: "alert alert-danger alert-dismissible fade show",
+                attrs: { role: "alert" }
+              },
+              [
+                _c(
+                  "ul",
+                  _vm._l(_vm.errors.errors, function(err, key) {
+                    return _c("li", { key: key }, [_vm._v(_vm._s(err[0]))])
+                  }),
+                  0
+                ),
+                _vm._v(" "),
+                _vm._m(0)
+              ]
+            )
+          ])
+        : _vm._e(),
+      _vm._v(" "),
       _c("div", { staticClass: "col-md-6" }, [
         _c("div", { staticClass: "card shadow mb-4" }, [
           _c("div", { staticClass: "card-body" }, [
@@ -50558,7 +50614,7 @@ var render = function() {
         ]),
         _vm._v(" "),
         _c("div", { staticClass: "card shadow mb-4" }, [
-          _vm._m(0),
+          _vm._m(1),
           _vm._v(" "),
           _c(
             "div",
@@ -50566,7 +50622,11 @@ var render = function() {
             [
               _c("vue-dropzone", {
                 ref: "myVueDropzone",
-                attrs: { id: "dropzone", options: _vm.dropzoneOptions }
+                attrs: { id: "dropzone", options: _vm.dropzoneOptions },
+                on: {
+                  "vdropzone-success": _vm.uploadSuccess,
+                  "vdropzone-removed-file": _vm.removeFile
+                }
               })
             ],
             1
@@ -50576,13 +50636,13 @@ var render = function() {
       _vm._v(" "),
       _c("div", { staticClass: "col-md-6" }, [
         _c("div", { staticClass: "card shadow mb-4" }, [
-          _vm._m(1),
+          _vm._m(2),
           _vm._v(" "),
           _c(
             "div",
             { staticClass: "card-body" },
             _vm._l(_vm.product_variant, function(item, index) {
-              return _c("div", { staticClass: "row" }, [
+              return _c("div", { key: index, staticClass: "row" }, [
                 _c("div", { staticClass: "col-md-4" }, [
                   _c("div", { staticClass: "form-group" }, [
                     _c("label", { attrs: { for: "" } }, [_vm._v("Option")]),
@@ -50619,10 +50679,10 @@ var render = function() {
                           }
                         }
                       },
-                      _vm._l(_vm.variants, function(variant) {
+                      _vm._l(_vm.variants, function(variant, k) {
                         return _c(
                           "option",
-                          { domProps: { value: variant.id } },
+                          { key: k, domProps: { value: variant.id } },
                           [
                             _vm._v(
                               "\n                                        " +
@@ -50700,12 +50760,15 @@ var render = function() {
           _c("div", { staticClass: "card-body" }, [
             _c("div", { staticClass: "table-responsive" }, [
               _c("table", { staticClass: "table" }, [
-                _vm._m(2),
+                _vm._m(3),
                 _vm._v(" "),
                 _c(
                   "tbody",
-                  _vm._l(_vm.product_variant_prices, function(variant_price) {
-                    return _c("tr", [
+                  _vm._l(_vm.product_variant_prices, function(
+                    variant_price,
+                    k
+                  ) {
+                    return _c("tr", { key: k }, [
                       _c("td", [_vm._v(_vm._s(variant_price.title))]),
                       _vm._v(" "),
                       _c("td", [
@@ -50792,6 +50855,23 @@ var render = function() {
   ])
 }
 var staticRenderFns = [
+  function() {
+    var _vm = this
+    var _h = _vm.$createElement
+    var _c = _vm._self._c || _h
+    return _c(
+      "button",
+      {
+        staticClass: "close",
+        attrs: {
+          type: "button",
+          "data-dismiss": "alert",
+          "aria-label": "Close"
+        }
+      },
+      [_c("span", { attrs: { "aria-hidden": "true" } }, [_vm._v("×")])]
+    )
+  },
   function() {
     var _vm = this
     var _h = _vm.$createElement

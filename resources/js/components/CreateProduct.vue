@@ -1,6 +1,15 @@
 <template>
     <section>
         <div class="row">
+            <div v-if="errors" class="col-md-12">
+                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                    <ul>
+                        <li v-for="(err, key) in errors.errors" :key="key">{{ err[0] }}</li>
+                    </ul>
+                    <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                </div>
+            </div>
+
             <div class="col-md-6">
                 <div class="card shadow mb-4">
                     <div class="card-body">
@@ -24,7 +33,7 @@
                         <h6 class="m-0 font-weight-bold text-primary">Media</h6>
                     </div>
                     <div class="card-body border">
-                        <vue-dropzone ref="myVueDropzone" id="dropzone" :options="dropzoneOptions"></vue-dropzone>
+                        <vue-dropzone v-on:vdropzone-success="uploadSuccess" v-on:vdropzone-removed-file="removeFile" ref="myVueDropzone" id="dropzone" :options="dropzoneOptions"></vue-dropzone>
                     </div>
                 </div>
             </div>
@@ -35,13 +44,12 @@
                         <h6 class="m-0 font-weight-bold text-primary">Variants</h6>
                     </div>
                     <div class="card-body">
-                        <div class="row" v-for="(item,index) in product_variant">
+                        <div class="row" v-for="(item,index) in product_variant" :key="index">
                             <div class="col-md-4">
                                 <div class="form-group">
                                     <label for="">Option</label>
                                     <select v-model="item.option" class="form-control">
-                                        <option v-for="variant in variants"
-                                                :value="variant.id">
+                                        <option v-for="(variant, k) in variants" :key="k" :value="variant.id">
                                             {{ variant.title }}
                                         </option>
                                     </select>
@@ -74,7 +82,7 @@
                                 </tr>
                                 </thead>
                                 <tbody>
-                                <tr v-for="variant_price in product_variant_prices">
+                                <tr v-for="(variant_price, k) in product_variant_prices" :key="k">
                                     <td>{{ variant_price.title }}</td>
                                     <td>
                                         <input type="text" class="form-control" v-model="variant_price.price">
@@ -127,10 +135,12 @@ export default {
             product_variant_prices: [],
             dropzoneOptions: {
                 url: 'https://httpbin.org/post',
+                addRemoveLinks: true,
                 thumbnailWidth: 150,
                 maxFilesize: 0.5,
                 headers: {"My-Awesome-Header": "header value"}
-            }
+            },
+            errors: null
         }
     },
     methods: {
@@ -177,8 +187,11 @@ export default {
             return ans;
         },
 
-        // store product into database
+        /**
+         * Store product into database
+         * */
         saveProduct() {
+            this.errors = null;
             let product = {
                 title: this.product_name,
                 sku: this.product_sku,
@@ -188,15 +201,34 @@ export default {
                 product_variant_prices: this.product_variant_prices
             }
 
-
             axios.post('/product', product).then(response => {
-                console.log(response.data);
+                //console.log(response.data);
+                alert('Product has been saved');
+                setTimeout(() => {
+                    window.location.href = '/product'
+                }, 2000);
             }).catch(error => {
                 console.log(error);
+                alert(error.response.data.message)
             })
 
-            console.log(product);
-        }
+        },
+
+        /**
+         * Store product images
+         * */
+        uploadSuccess(file, response) {
+            this.images.push(response.files.file);
+        },
+
+        /**
+         * Remove product image
+         * */
+        removeFile(file, error, xhr) {
+            const index = this.images.indexOf(file.dataURL);
+            if (index > -1)
+                this.images.splice(index, 1);
+        },
 
 
     },

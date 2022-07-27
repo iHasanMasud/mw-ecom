@@ -5,12 +5,6 @@
     <div class="d-sm-flex align-items-center justify-content-between mb-4">
         <h1 class="h3 mb-0 text-gray-800">Products</h1>
     </div>
-{{--    @foreach($variant_groups as $variant)--}}
-{{--        {{dd($variant)}}--}}
-{{--        @foreach($variant['variants'] as $variant_item)--}}
-{{--            {{dd($variant_item)}}--}}
-{{--        @endforeach--}}
-{{--    @endforeach--}}
     <div class="card">
         <form action="{{ route('product.index') }}" method="get" class="card-header">
             <div class="form-row justify-content-between">
