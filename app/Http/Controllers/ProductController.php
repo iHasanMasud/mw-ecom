@@ -55,7 +55,9 @@ class ProductController extends Controller
                     return $query2->where('id', $variant);
                 });
             });
-        })->with('variants')->paginate(5);
+        })->with('variants')
+            ->orderBy('id', 'desc')
+            ->paginate(5);
         //dd(DB::getQueryLog()); // Show results of log
 
         $variant_groups = $this->getVariantGroups();
@@ -82,12 +84,12 @@ class ProductController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'title' => "required",
-            'sku' => "required|unique:products,sku",
+            'title' => "required|string|max:255",
+            'sku' => "required|unique:products,sku|string|max:255",
             'description' => "required",
             'product_image' => "required|array",
-            'product_variant' => "required|array",
-            'product_variant_prices' => "required|array",
+            'product_variant' => "required|array|min:1",
+            'product_variant_prices' => "required|array|min:1",
         ]);
 
         try {
@@ -138,11 +140,11 @@ class ProductController extends Controller
                 if (!is_dir(storage_path("app/public/product-images"))) {
                     mkdir(storage_path("app/public/product-images"), 0775, true);
                 }
-                if (!is_dir(storage_path("app/public/product-thumbnails"))) {
+                /*if (!is_dir(storage_path("app/public/product-thumbnails"))) {
                     mkdir(storage_path("app/public/product-thumbnails"), 0775, true);
-                }
+                }*/
                 $photo->resize(40, 40)->save(storage_path('app/public/product-images/' . $file_name), 100);
-                $photo->resize(40, 40)->save(storage_path('app/public/product-thumbnails/' . $file_name), 100);
+                //$photo->resize(40, 40)->save(storage_path('app/public/product-thumbnails/' . $file_name), 100);
 
                 $productImage = new ProductImage();
                 $productImage->file_path = $file_name;
@@ -181,7 +183,8 @@ class ProductController extends Controller
     public function edit(Product $product)
     {
         $variants = Variant::all();
-        return view('products.edit', compact('variants'));
+        $product->load(['images', 'variants', 'variants.variant_one', 'variants.variant_two', 'variants.variant_three'])->get();
+        return view('products.edit', compact('variants', 'product'));
     }
 
     /**
@@ -189,11 +192,11 @@ class ProductController extends Controller
      *
      * @param \Illuminate\Http\Request $request
      * @param \App\Models\Product $product
-     * @return \Illuminate\Http\Response
+     * @return \Illuminate\Http\JsonResponse
      */
     public function update(Request $request, Product $product)
     {
-        //
+
     }
 
     /**
@@ -223,5 +226,16 @@ class ProductController extends Controller
         return $variants;
     }
 
+    /**
+     * Delete product image
+     */
+    public function deleteImage($file_name)
+    {
+        if (file_exists(storage_path('app/public/product-images/' . $file_name))) {
+            unlink(storage_path('app/public/product-images/' . $file_name));
+        }
+        ProductImage::where('file_path', $file_name)->delete();
+        return response()->json(['message' => "Successfully deleted image."]);
+    }
 
 }

@@ -14,6 +14,7 @@ try {
     require('jquery.easing')
     require('bootstrap');
     require('select2');
+    require('./helper');
 
     $('select').select2({
         theme: 'bootstrap4',
