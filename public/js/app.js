@@ -2113,6 +2113,8 @@ __webpack_require__.r(__webpack_exports__);
      * Store product into database
      * */
     saveProduct: function saveProduct() {
+      var _this2 = this;
+
       this.errors = null;
       var product = {
         title: this.product_name,
@@ -2124,12 +2126,17 @@ __webpack_require__.r(__webpack_exports__);
       };
       axios.post('/product', product).then(function (response) {
         //console.log(response.data);
-        alert('Product has been saved');
+        alert(response.data.message);
         setTimeout(function () {
           window.location.href = '/product';
-        }, 2000);
+        }, 1000);
       })["catch"](function (error) {
         console.log(error);
+
+        if (error.response.status === 422) {
+          _this2.errors = error.response.data;
+        }
+
         alert(error.response.data.message);
       });
     },

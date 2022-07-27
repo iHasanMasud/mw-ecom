@@ -3,11 +3,15 @@
 namespace App\Http\Controllers;
 
 use App\Models\Product;
+use App\Models\ProductImage;
 use App\Models\ProductVariant;
 use App\Models\ProductVariantPrice;
 use App\Models\Variant;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
+use Intervention\Image\ImageManagerStatic as Image;
 
 class ProductController extends Controller
 {
@@ -93,16 +97,66 @@ class ProductController extends Controller
                 'sku' => $request->sku,
                 'description' => $request->description,
             ]);
-            $product->product_images()->createMany($request->product_image);
-            $product->variants()->createMany($request->product_variant);
-            $product->variants()->each(function ($variant) use ($request) {
-                $variant->variant_prices()->createMany($request->product_variant_prices);
-            });
+            // store product variants in an array to use to store product variant price
+            $product_variants = [];
+            foreach ($request->product_variant as $key => $variant) {
+                foreach ($variant['tags'] as $tag) {
+                    $productVariant = new ProductVariant();
+                    $productVariant->variant_id = $variant['option'];
+                    $productVariant->variant = $tag;
+                    $productVariant->product_id = $product->id;
+                    $productVariant->save();
+                    $product_variants[$key][$tag] = $productVariant;
+                }
+            }
+
+            // store product variant price
+            foreach ($request->product_variant_prices as $product_variant_price) {
+                $productVariantPrice = new ProductVariantPrice();
+                $productVariantPrice->stock = $product_variant_price['stock'];
+                $productVariantPrice->price = $product_variant_price['price'];
+                $productVariantPrice->product_id = $product->id;
+                foreach (explode('/', $product_variant_price['title']) as $key => $variant) {
+                    if ($key === 0) {
+                        $productVariantPrice->product_variant_one = $product_variants[$key][$variant]->id ?? null;
+                    } elseif ($key === 1) {
+                        $productVariantPrice->product_variant_two = $product_variants[$key][$variant]->id ?? null;
+                    } elseif ($key === 2) {
+                        $productVariantPrice->product_variant_three = $product_variants[$key][$variant]->id ?? null;
+                    }
+                }
+                $productVariantPrice->save();
+            }
+
+            // product images store
+            foreach ($request->product_image as $file) {
+                $photo = Image::make($file);
+                $image_parts = explode(";base64,", $file);
+                $image_extension = explode("image/", $image_parts[0]);
+                $file_name = Str::random(16) . '.' . $image_extension[1];
+
+                if (!is_dir(storage_path("app/public/product-images"))) {
+                    mkdir(storage_path("app/public/product-images"), 0775, true);
+                }
+                if (!is_dir(storage_path("app/public/product-thumbnails"))) {
+                    mkdir(storage_path("app/public/product-thumbnails"), 0775, true);
+                }
+                $photo->resize(40, 40)->save(storage_path('app/public/product-images/' . $file_name), 100);
+                $photo->resize(40, 40)->save(storage_path('app/public/product-thumbnails/' . $file_name), 100);
+
+                $productImage = new ProductImage();
+                $productImage->file_path = $file_name;
+                 $productImage->thumbnail = null;
+                $productImage->product_id = $product->id;
+                $productImage->save();
+            }
+
             DB::commit();
             return response()->json(['success' => true, 'message' => 'Product created successfully.']);
         } catch (\Exception $e) {
+            Log::emergency("File:" . $e->getFile() . " Line:" . $e->getLine() . " Message:" . $e->getMessage());
             DB::rollBack();
-            return response()->json(['success' => false, 'message' => $e->getMessage()]);
+            return response()->json(['success' => false, 'message' => 'Something went wrong'], 500);
         }
     }
 
@@ -156,7 +210,6 @@ class ProductController extends Controller
     /**
      * Get variant groups
      */
-
     public function getVariantGroups(){
         $variants = Variant::select('id', 'title')->get()->toArray();
         $i = 0;

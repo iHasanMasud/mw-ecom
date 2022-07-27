@@ -203,12 +203,15 @@ export default {
 
             axios.post('/product', product).then(response => {
                 //console.log(response.data);
-                alert('Product has been saved');
+                alert(response.data.message);
                 setTimeout(() => {
                     window.location.href = '/product'
-                }, 2000);
+                }, 1000);
             }).catch(error => {
                 console.log(error);
+                if (error.response.status === 422) {
+                    this.errors = error.response.data;
+                }
                 alert(error.response.data.message)
             })
 
