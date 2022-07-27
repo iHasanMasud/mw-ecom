@@ -5,12 +5,17 @@
     <div class="d-sm-flex align-items-center justify-content-between mb-4">
         <h1 class="h3 mb-0 text-gray-800">Products</h1>
     </div>
-
+{{--    @foreach($variant_groups as $variant)--}}
+{{--        {{dd($variant)}}--}}
+{{--        @foreach($variant['variants'] as $variant_item)--}}
+{{--            {{dd($variant_item)}}--}}
+{{--        @endforeach--}}
+{{--    @endforeach--}}
     <div class="card">
-        <form action="" method="get" class="card-header">
+        <form action="{{ route('product.index') }}" method="get" class="card-header">
             <div class="form-row justify-content-between">
                 <div class="col-md-2">
-                    <input type="text" name="title" placeholder="Product Title" class="form-control">
+                    <input type="text" name="title" placeholder="Product Title" class="form-control" value="{{ $params['title'] ?? '' }}">
                 </div>
                 <div class="col-md-2">
                     <select name="variant" id="" class="form-control">
@@ -18,7 +23,7 @@
                         @foreach($variant_groups as $variant)
                             <optgroup label="{{$variant['title']}}">
                                 @foreach($variant['variants'] as $variant_item)
-                                    <option value="{{$variant_item['variant_id']}}">{{ucfirst($variant_item['variant'])}}</option>
+                                    <option value="{{$variant_item['variant_id']}}" {{ isset($params['variant']) && $params['variant'] == $product_variant->id ? 'selected':'' }}>{{ucfirst($variant_item['variant'])}}</option>
                                 @endforeach
                             </optgroup>
                         @endforeach
@@ -64,7 +69,7 @@
                             <td>{{ nl2br($product->description) }}</td>
                             <td>
                                 <dl class="row mb-0" style="height: 80px; overflow: hidden" id="variant_{{$k}}">
-                                @foreach($product->product_variant_prices as $i => $variant)
+                                @foreach($product->variants as $i => $variant)
 
                                     <dt class="col-sm-3 pb-0">
                                         {{$variant->variant_two->variant}}/ {{$variant->variant_one->variant}} {{($variant->variant_three) ? "/ ".$variant->variant_three->variant : ''}}

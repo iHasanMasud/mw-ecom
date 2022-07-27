@@ -7,6 +7,7 @@ use App\Models\ProductVariant;
 use App\Models\ProductVariantPrice;
 use App\Models\Variant;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class ProductController extends Controller
 {
@@ -15,11 +16,43 @@ class ProductController extends Controller
      *
      * @return \Illuminate\Contracts\Foundation\Application|\Illuminate\Contracts\View\Factory|\Illuminate\Http\Response|\Illuminate\View\View
      */
-    public function index()
+    public function index(Request $request)
     {
-        $products = Product::select('id', 'title', 'sku', 'description', 'created_at')
-            ->with('product_variant_prices')
-            ->paginate(5);
+        $date = $request->date;
+        $price_from = $request->price_from;
+        $price_to = $request->price_to;
+        $variant = $request->variant;
+        $title = $request->title;
+
+        //DB::enableQueryLog(); // Enable query log
+        $products = Product::when(request()->filled('date'), function ($query) use ($date) {
+            return $query->whereDate('created_at', $date);
+        })->when(request()->filled('title'), function ($query) use ($title) {
+            return $query->where('title', "LIKE", "%" . $title . "%");
+        })->when(request()->filled('price_from'), function ($query) use ($price_from) {
+            return $query->where(function ($query1) use ($price_from) {
+                $query1->whereHas('variants', function ($query2) use ($price_from) {
+                    return $query2->where('price', '>=', $price_from);
+                });
+            });
+        })->when(request()->filled('price_to'), function ($query) use ($price_to) {
+            return $query->where(function ($query1) use ($price_to) {
+                $query1->whereHas('variants', function ($query2) use ($price_to) {
+                    return $query2->where('price', '<=', $price_to);
+                });
+            });
+        })->when(request()->filled('variant'), function ($query) use ($variant) {
+            return  $query->where(function ($query1) use ($variant) {
+                $query1->whereHas('variants.variant_one', function ($query2) use ($variant) {
+                    return $query2->where('id', $variant);
+                })->orWhereHas('variants.variant_two', function ($query2) use ($variant) {
+                    return $query2->where('id', $variant);
+                })->orWhereHas('variants.variant_three', function ($query2) use ($variant) {
+                    return $query2->where('id', $variant);
+                });
+            });
+        })->with('variants')->paginate(5);
+        //dd(DB::getQueryLog()); // Show results of log
 
         $variant_groups = $this->getVariantGroups();
         return view('products.index', compact('products', 'variant_groups'));
