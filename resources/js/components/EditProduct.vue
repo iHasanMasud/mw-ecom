@@ -4,7 +4,7 @@
             <div v-if="errors" class="col-md-12">
                 <div class="alert alert-danger alert-dismissible fade show" role="alert">
                     <ul>
-                        <li v-for="(err, key) in errors.errors" :key="key">{{ err[0] }}</li>
+                        <li v-for="(err, k) in errors.errors" :key="k">{{ err[0] }}</li>
                     </ul>
                     <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
                 </div>
@@ -49,7 +49,7 @@
                                 <div class="form-group">
                                     <label for="">Option</label>
                                     <select v-model="item.option" class="form-control">
-                                        <option v-for="(variant, k) in variants" :key="k" :value="variant.id">
+                                        <option v-for="(variant, key) in variants" :key="key" :value="variant.id">
                                             {{ variant.title }}
                                         </option>
                                     </select>
@@ -99,7 +99,7 @@
             </div>
         </div>
 
-        <button @click="saveProduct" type="submit" class="btn btn-lg btn-primary">Save</button>
+        <button @click="updateProduct" type="submit" class="btn btn-lg btn-primary">Update</button>
         <button type="button" class="btn btn-secondary btn-lg">Cancel</button>
     </section>
 </template>
@@ -117,6 +117,10 @@ export default {
     props: {
         variants: {
             type: Array,
+            required: true
+        },
+        product: {
+            type: Object,
             required: true
         }
     },
@@ -144,6 +148,53 @@ export default {
         }
     },
     methods: {
+        setupComp() {
+            this.product_name = this.product.title;
+            this.product_sku = this.product.sku;
+            this.description = this.product.description;
+
+            this.product.images.forEach(image => {
+                //console.log(image);
+                const options = { size: this.dropzoneOptions.maxFilesize, name: image.file_path, type: "image/" + image.file_path.split('.')[1] };
+                this.$refs.myVueDropzone.manuallyAddFile(options, '/storage/product-images/' + image.file_path);
+            });
+
+
+            let variant_name = "";
+            this.product.variants.forEach((item, key) => {
+                //console.log(item.variant_one);
+                if (item.variant_one) {
+                    if (key === 0) {
+                        this.product_variant[0] = { option: item.variant_one.variant_id, tags: [] };
+                    }
+                    this.product_variant[0].tags.pushIfNotExist(item.variant_one.variant);
+                    variant_name = item.variant_one.variant;
+                }
+                if (item.variant_two) {
+                    if (key === 0) {
+                        this.product_variant[1] = { option: item.variant_two.variant_id, tags: [] };
+                    }
+                    this.product_variant[1].tags.pushIfNotExist(item.variant_two.variant);
+                    variant_name += `/${item.variant_two.variant}`;
+                }
+                if (item.variant_three) {
+                    if (key === 0) {
+                        this.product_variant[2] = { option: item.variant_three.variant_id, tags: [] };
+                    }
+                    this.product_variant[2].tags.pushIfNotExist(item.variant_three.variant);
+                    variant_name += `/${item.variant_three.variant}`;
+                }
+
+
+                this.product_variant_prices.push({
+                    title: variant_name,
+                    price: item.price,
+                    stock: item.stock
+                })
+
+            });
+        },
+
         // it will push a new object into product variant
         newVariant() {
             let all_variants = this.variants.map(el => el.id)
@@ -188,9 +239,9 @@ export default {
         },
 
         /**
-         * Store product into database
+         * Update product
          * */
-        saveProduct() {
+        updateProduct() {
             this.errors = null;
             let product = {
                 title: this.product_name,
@@ -200,8 +251,7 @@ export default {
                 product_variant: this.product_variant,
                 product_variant_prices: this.product_variant_prices
             }
-
-            axios.post('/product', product).then(response => {
+            axios.put(`/product/${this.product.id}`, product).then(response => {
                 //console.log(response.data);
                 alert(response.data.message);
                 setTimeout(() => {
@@ -228,14 +278,21 @@ export default {
          * Remove product image
          * */
         removeFile(file, error, xhr) {
-            const index = this.images.indexOf(file.dataURL);
-            if (index > -1)
-                this.images.splice(index, 1);
+            if (file.manuallyAdded) {
+                axios.delete(`/product/image/${file.name}`).catch(error => {
+                    alert(error.response.data.message);
+                });
+            }else {
+                const index = this.images.indexOf(file.dataURL);
+                if (index > -1)
+                    this.images.splice(index, 1);
+            }
         },
 
 
     },
     mounted() {
+        this.setupComp();
         console.log('Component mounted.')
     }
 }

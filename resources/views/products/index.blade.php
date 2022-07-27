@@ -5,20 +5,19 @@
     <div class="d-sm-flex align-items-center justify-content-between mb-4">
         <h1 class="h3 mb-0 text-gray-800">Products</h1>
     </div>
-
     <div class="card">
-        <form action="" method="get" class="card-header">
+        <form action="{{ route('product.index') }}" method="get" class="card-header">
             <div class="form-row justify-content-between">
                 <div class="col-md-2">
-                    <input type="text" name="title" placeholder="Product Title" class="form-control">
+                    <input type="text" name="title" placeholder="Product Title" class="form-control" value="{{ $params['title'] ?? '' }}">
                 </div>
                 <div class="col-md-2">
                     <select name="variant" id="" class="form-control">
-                        <option value="" selected disabled>--Select a Variant --</option>
+                        <option value="" selected disabled>Select a Variant</option>
                         @foreach($variant_groups as $variant)
                             <optgroup label="{{$variant['title']}}">
                                 @foreach($variant['variants'] as $variant_item)
-                                    <option value="{{$variant_item['variant_id']}}">{{ucfirst($variant_item['variant'])}}</option>
+                                    <option value="{{$variant_item['variant_id']}}" {{ isset($params['variant']) && $params['variant'] == $product_variant->id ? 'selected':'' }}>{{ucfirst($variant_item['variant'])}}</option>
                                 @endforeach
                             </optgroup>
                         @endforeach
@@ -59,12 +58,12 @@
                     <tbody>
                     @foreach($products as $k => $product)
                         <tr>
-                            <td>{{ $k+1 }}</td>
+                            <td>{{ $products->firstItem()+$k }}</td>
                             <td>{{ $product->title }} <br> Created at : {{ $product->created_at->format('d-M-Y') }}</td>
                             <td>{{ nl2br($product->description) }}</td>
                             <td>
                                 <dl class="row mb-0" style="height: 80px; overflow: hidden" id="variant_{{$k}}">
-                                @foreach($product->product_variant_prices as $i => $variant)
+                                @foreach($product->variants as $i => $variant)
 
                                     <dt class="col-sm-3 pb-0">
                                         {{$variant->variant_two->variant}}/ {{$variant->variant_one->variant}} {{($variant->variant_three) ? "/ ".$variant->variant_three->variant : ''}}
@@ -81,7 +80,7 @@
                             </td>
                             <td>
                                 <div class="btn-group btn-group-sm">
-                                    <a href="{{ route('product.edit', 1) }}" class="btn btn-success">Edit</a>
+                                    <a href="{{ route('product.edit', $product->id) }}" class="btn btn-success">Edit</a>
                                 </div>
                             </td>
                         </tr>
