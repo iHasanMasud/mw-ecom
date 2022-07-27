@@ -143,13 +143,13 @@ class ProductController extends Controller
                 /*if (!is_dir(storage_path("app/public/product-thumbnails"))) {
                     mkdir(storage_path("app/public/product-thumbnails"), 0775, true);
                 }*/
-                $photo->resize(40, 40)->save(storage_path('app/public/product-images/' . $file_name), 100);
-                //$photo->resize(40, 40)->save(storage_path('app/public/product-thumbnails/' . $file_name), 100);
+                $photo->resize(50, 50)->save(storage_path('app/public/product-images/' . $file_name), 100);
+                //$photo->resize(50, 50)->save(storage_path('app/public/product-thumbnails/' . $file_name), 100);
 
                 $productImage = new ProductImage();
-                $productImage->file_path = $file_name;
-                 $productImage->thumbnail = null;
                 $productImage->product_id = $product->id;
+                $productImage->file_path = $file_name;
+                $productImage->thumbnail = null;
                 $productImage->save();
             }
 
@@ -160,18 +160,6 @@ class ProductController extends Controller
             DB::rollBack();
             return response()->json(['success' => false, 'message' => 'Something went wrong'], 500);
         }
-    }
-
-
-    /**
-     * Display the specified resource.
-     *
-     * @param \App\Models\Product $product
-     * @return \Illuminate\Http\Response
-     */
-    public function show($product)
-    {
-
     }
 
     /**
@@ -196,18 +184,86 @@ class ProductController extends Controller
      */
     public function update(Request $request, Product $product)
     {
+        $request->validate([
+            'title' => "required|string|max:255",
+            'sku' => "required|unique:products,sku," . $product->id,
+            'description' => "required|max:255",
+            'product_variant' => "required|array|min:1",
+            'product_variant_prices' => "required|array|min:1",
+        ]);
 
-    }
+        // Delete previous product variant data
+        $product->load([
+            'variants.variant_one' => function ($query) {
+                $query->delete();
+            },
+            'variants.variant_two' => function ($query) {
+                $query->delete();
+            },
+            'variants.variant_three' => function ($query) {
+                $query->delete();
+            },
+            'variants' => function ($query) {
+                $query->delete();
+            }
+        ]);
 
-    /**
-     * Remove the specified resource from storage.
-     *
-     * @param \App\Models\Product $product
-     * @return \Illuminate\Http\Response
-     */
-    public function destroy(Product $product)
-    {
-        //
+        // update product data
+        $product->title = $request->title;
+        $product->sku = $request->sku;
+        $product->description = $request->description;
+        $product->save();
+
+        // Store product variants
+        $product_variants = [];
+        foreach ($request->product_variant as $key => $variant) {
+            foreach ($variant['tags'] as $tag) {
+                $productVariant = new ProductVariant();
+                $productVariant->variant_id = $variant['option'];
+                $productVariant->variant = $tag;
+                $productVariant->product_id = $product->id;
+                $productVariant->save();
+                $product_variants[$key][$tag] = $productVariant;
+            }
+        }
+
+        // store product variant price
+        foreach ($request->product_variant_prices as $product_variant_price) {
+            $productVariantPrice = new ProductVariantPrice();
+            $productVariantPrice->stock = $product_variant_price['stock'];
+            $productVariantPrice->price = $product_variant_price['price'];
+            $productVariantPrice->product_id = $product->id;
+            foreach (explode('/', $product_variant_price['title']) as $key => $variant) {
+                if ($key === 0) {
+                    $productVariantPrice->product_variant_one = $product_variants[$key][$variant]->id ?? null;
+                } elseif ($key === 1) {
+                    $productVariantPrice->product_variant_two = $product_variants[$key][$variant]->id ?? null;
+                } elseif ($key === 2) {
+                    $productVariantPrice->product_variant_three = $product_variants[$key][$variant]->id ?? null;
+                }
+            }
+            $productVariantPrice->save();
+        }
+        // product images store
+        foreach ($request->product_image as $file) {
+            $photo = Image::make($file);
+            $image_parts = explode(";base64,", $file);
+            $image_extension = explode("image/", $image_parts[0]);
+            $file_name = Str::random(16) . '.' . $image_extension[1];
+            if (!is_dir(storage_path("app/public/product-images"))) {
+                mkdir(storage_path("app/public/product-images"), 0775, true);
+            }
+            $photo->resize(50, 50)->save(storage_path('app/public/product-images/' . $file_name), 100);
+
+
+            $productImage = new ProductImage();
+            $productImage->product_id = $product->id;
+            $productImage->file_path = $file_name;
+            $productImage->thumbnail = null;
+            $productImage->save();
+        }
+
+        return response()->json(['message' => "Product updated successfully."], 200);
     }
 
     /**
@@ -228,6 +284,7 @@ class ProductController extends Controller
 
     /**
      * Delete product image
+     * @return \Illuminate\Http\JsonResponse
      */
     public function deleteImage($file_name)
     {

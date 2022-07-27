@@ -2479,6 +2479,20 @@ __webpack_require__.r(__webpack_exports__);
      * */
     uploadSuccess: function uploadSuccess(file, response) {
       this.images.push(response.files.file);
+    },
+
+    /**
+     * Remove product image
+     * */
+    removeFile: function removeFile(file, error, xhr) {
+      if (file.manuallyAdded) {
+        axios["delete"]("/product/image/".concat(file.name))["catch"](function (error) {
+          alert(error.response.data.message);
+        });
+      } else {
+        var index = this.images.indexOf(file.dataURL);
+        if (index > -1) this.images.splice(index, 1);
+      }
     }
   },
   mounted: function mounted() {

@@ -274,6 +274,21 @@ export default {
             this.images.push(response.files.file);
         },
 
+        /**
+         * Remove product image
+         * */
+        removeFile(file, error, xhr) {
+            if (file.manuallyAdded) {
+                axios.delete(`/product/image/${file.name}`).catch(error => {
+                    alert(error.response.data.message);
+                });
+            }else {
+                const index = this.images.indexOf(file.dataURL);
+                if (index > -1)
+                    this.images.splice(index, 1);
+            }
+        },
+
 
     },
     mounted() {
