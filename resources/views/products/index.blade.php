@@ -13,7 +13,7 @@
                 </div>
                 <div class="col-md-2">
                     <select name="variant" id="" class="form-control">
-                        <option value="" selected disabled>--Select a Variant --</option>
+                        <option value="" selected disabled>Select a Variant</option>
                         @foreach($variant_groups as $variant)
                             <optgroup label="{{$variant['title']}}">
                                 @foreach($variant['variants'] as $variant_item)
@@ -58,7 +58,7 @@
                     <tbody>
                     @foreach($products as $k => $product)
                         <tr>
-                            <td>{{ $k+1 }}</td>
+                            <td>{{ $products->firstItem()+$k }}</td>
                             <td>{{ $product->title }} <br> Created at : {{ $product->created_at->format('d-M-Y') }}</td>
                             <td>{{ nl2br($product->description) }}</td>
                             <td>
